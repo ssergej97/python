@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+
+[dev-packages]
+flake8 = "~=7.3.0"
+black = "~=25.12.0"
+isort = "~=7.0.0"
+mypy = "~=1.19.1"
+ipdb = "~=0.13.13"
+
+[requires]
+python_version = "3.13"
