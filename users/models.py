@@ -1,6 +1,6 @@
 from enum import StrEnum, auto
 
-from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 
@@ -19,7 +19,34 @@ class Role(StrEnum):
             results.append(_element)
         return results
 
+class UserManager(BaseUserManager):
+    def create_user(self, email: str, password: str, **extra_fields):
+        """Create and save a user with passed params"""
+        email = self.normalize_email(email)
+        # password
 
+        extra_fields['is_staff'] = False
+        extra_fields['is_superuser'] = False
+        extra_fields['role'] = Role.CUSTOMER
+
+        user = self.model(email=email, password=password, **extra_fields)
+        user.save()
+
+        return user
+
+    def create_superuser(self, email: str, password: str, **extra_fields):
+        """Create and save a user with passed params"""
+        email = self.normalize_email(email)
+        # password
+
+        extra_fields['is_staff'] = True
+        extra_fields['is_superuser'] = True
+        extra_fields['role'] = Role.CUSTOMER
+
+        user = self.model(email=email, password=password, **extra_fields)
+        user.save()
+
+        return user
 
 class User(AbstractBaseUser,PermissionsMixin):
     class Meta:
@@ -36,3 +63,5 @@ class User(AbstractBaseUser,PermissionsMixin):
     EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
+
+    objects = UserManager()
