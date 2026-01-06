@@ -1,6 +1,7 @@
 from enum import StrEnum, auto
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 
@@ -23,7 +24,7 @@ class UserManager(BaseUserManager):
     def create_user(self, email: str, password: str, **extra_fields):
         """Create and save a user with passed params"""
         email = self.normalize_email(email)
-        # password
+        password = make_password(password)
 
         extra_fields['is_staff'] = False
         extra_fields['is_superuser'] = False
@@ -37,11 +38,11 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email: str, password: str, **extra_fields):
         """Create and save a user with passed params"""
         email = self.normalize_email(email)
-        # password
+        password = make_password(password)
 
         extra_fields['is_staff'] = True
         extra_fields['is_superuser'] = True
-        extra_fields['role'] = Role.CUSTOMER
+        extra_fields['role'] = Role.ADMIN
 
         user = self.model(email=email, password=password, **extra_fields)
         user.save()
