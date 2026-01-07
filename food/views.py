@@ -5,6 +5,7 @@ from django.contrib.admindocs.utils import ROLES
 from rest_framework import viewsets, serializers, routers, permissions
 from rest_framework.decorators import action, permission_classes
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 from django.db import transaction
@@ -92,11 +93,15 @@ class BaseFilter:
             try:
                 extractor = getattr(self, f"extract_{_key}")
             except AttributeError:
-                errors["queryParams"][key] = f"You forgot to define extract_{_key} method"
+                errors["queryParams"][key] = f"You forgot to define extract_{_key} method in your {self.__class__.__name__}"
+                raise ValidationError(errors)
+            try:
+                _extracted_value = extractor(value)
             except ValidationError as error:
                 errors["queryParams"][key] = str(error)
             else:
-                setattr(self, _key, extractor(value))
+                setattr(self, _key, _extracted_value)
+
         if errors["queryParams"]:
             raise ValidationError(errors)
 
@@ -177,14 +182,21 @@ class FoodAPIViewSet(viewsets.GenericViewSet):
 
     @action(methods=["get"], detail=False, url_path="orders")
     def all_orders(self, request: Request) -> Response:
-        filters = FoodFilters(**request.query_params.dict())
-        status: str | None = request.query_params.get("status")
-        orders = (
-            Order.objects.all()
-            if filters.delivery_provider is None
-            else Order.objects.filter(delivery_provider=filters.delivery_provider)
-        )
-        serializer = OrderSerializer(orders, many=True)
+        # filters = FoodFilters(**request.query_params.dict())
+        # # status: str | None = request.query_params.get("status")
+        # orders = (
+        #     Order.objects.all()
+        #     if filters.delivery_provider is None
+        #     else Order.objects.filter(delivery_provider=filters.delivery_provider)
+        # )
+
+        orders = Order.objects.all()
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 2
+        page = paginator.paginate_queryset(orders, request, view=self)
+        if page is not None:
+            serializer = OrderSerializer(page, many=True)
 
         return Response(serializer.data)
 
