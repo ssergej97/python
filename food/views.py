@@ -216,9 +216,25 @@ def import_dishes(request):
 
     decoded = csv_file.read().decode("utf-8")
     reader = csv.DictReader(io.StringIO(decoded))
+    total = 0
 
     for row in reader:
         restaraunt_name = row["restaraunt"]
+        try:
+            rest = Restaurant.objects.get(name=restaraunt_name)
+        except Restaurant.DoesNotExist:
+            continue
+        else:
+            print(f"Restaurant {rest} name")
+
+        Dish.objects.create(
+            name=row["name"],
+            price=int(row["price"]),
+            restaraunt=rest
+        )
+        total+=1
+
+    print(f"{total} dishes upload to the database")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
