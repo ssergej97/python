@@ -1,0 +1,12 @@
+{% extends 'admin/change-list.html' %} {% load static %}
+{% block content %}
+
+<h1>Hello there</h1>
+<form action="import-dishes/" method="post" enctype="multipart/form-data">
+    <input type="file" accept="text/csv" name="file">
+    {% csrf_token %}
+    <button type="submit">Upload file</button>
+</form>
+
+{{block.super}}
+{% endblock content %}

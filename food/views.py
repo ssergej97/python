@@ -1,11 +1,14 @@
+import csv
+import io
 from datetime import date
 from typing import Any
 
 from django.contrib.admindocs.utils import ROLES
+from django.shortcuts import redirect
 from rest_framework import viewsets, serializers, routers, permissions
 from rest_framework.decorators import action, permission_classes
 from rest_framework.exceptions import ValidationError
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 from django.db import transaction
@@ -192,13 +195,32 @@ class FoodAPIViewSet(viewsets.GenericViewSet):
 
         orders = Order.objects.all()
 
-        paginator = PageNumberPagination()
-        paginator.page_size = 2
+        paginator = LimitOffsetPagination()
+        # paginator.page_size = 2
+        # paginator.page_size_query_param = "size"
         page = paginator.paginate_queryset(orders, request, view=self)
+
         if page is not None:
             serializer = OrderSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
+        serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
+
+def import_dishes(request):
+    if request.method != "post":
+        raise ValidationError(f"Method {request.method} is not allowed on this resource")
+    csv_file = request.FILES.get("file")
+    if csv_file is None:
+        raise ValueError("No CSV file provided")
+
+    decoded = csv_file.read().decode("utf-8")
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    for row in reader:
+        restaraunt_name = row["restaraunt"]
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 router = routers.DefaultRouter()
 router.register(
