@@ -157,6 +157,8 @@ SIMPLE_JWT = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://localhost:6379/0"
+        "LOCATION": "redis://localhost:6379/0",
     }
 }
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
