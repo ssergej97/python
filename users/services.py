@@ -30,7 +30,7 @@ class ActivationService:
 
         payload = {"user_id": user_id}
 
-        self.cache.set(namespace="activation", key=str(activation_key), value=payload, ttl=30)
+        self.cache.set(namespace="activation", key=str(activation_key), value=payload, ttl=800)
 
         return None
 
@@ -47,7 +47,10 @@ class ActivationService:
         )
 
     def activate_user(self, activation_key: str) -> None:
-        user_cache_payload = self.cache.get(namespace="activation", key=activation_key)
+        user_cache_payload : dict | None = self.cache.get(namespace="activation", key=activation_key)
+
+        if user_cache_payload is None:
+            raise ValueError("No payload in cache")
 
         user = User.objects.get(id=user_cache_payload["user_id"])
         user.is_active = True

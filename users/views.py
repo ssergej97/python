@@ -3,6 +3,7 @@ from typing import Any
 from django.contrib.auth.hashers import make_password
 from rest_framework import viewsets, routers, permissions, serializers
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -65,17 +66,28 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
 
         return Response(UserSerializer(serializer.instance).data, status=201)
 
-    @action(methods=["POST"], detail=False, name="activate", permissions=[permissions.AllowAny])
+    @action(methods=["POST"], detail=False, name="activate")
     def activate(self, request: Request) -> Response:
         serializer = UserActivationSerializer(data=request.data)
         serializer.is_valid()
 
         activation_service = ActivationService()
-        activation_service.activate_user(
-            activation_key=serializer.validated_data["key"]
-        )
+        try:
+            activation_service.activate_user(
+                activation_key=serializer.validated_data["key"]
+            )
+        except ValueError as error:
+            raise ValidationError("Activation link expired") from error
 
         return Response(data=None, status=204)
+
+    def resend_activation_link(self, email: str) -> None:
+        """
+        Send user activation link on email
+        :param email:
+        :return:
+        """
+        pass
 
 
 router = routers.DefaultRouter()

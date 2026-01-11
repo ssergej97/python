@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 django = "*"
+redis = "~=6.2.0" # Caching
 
 [dev-packages]
 flake8 = "~=7.3.0"
