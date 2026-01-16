@@ -7,12 +7,12 @@ import redis
 class CacheService:
     def __init__(self):
         self.connection: redis.Redis = redis.Redis.from_url(
-            "redis;//localhost:6379/0"
+            "redis://localhost:6379/0"
         )
 
     @staticmethod
     def _build_key(namespace: str, key: str) -> str:
-        return f"{namespace} + {key}"
+        return f"{namespace}:{key}"
 
     def set(self, namespace: str, key: str, value: dict, ttl: int | None = None):
         payload: str = json.dumps(value)
@@ -31,4 +31,6 @@ class CacheService:
         return json.loads(result)
 
     def delete(self, namespace: str, key: str):
-        pass
+        self.connection.delete(
+            self._build_key(namespace=namespace, key=key)
+        )

@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from datetime import timedelta
 
@@ -23,10 +23,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-bi-sdqa*vi3m+_8(@8)*dvrs&ni67c14#fbwx@54-fkro!)&&r'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(os.getenv("DJANGO_DEBUG", ""))
 
 ALLOWED_HOSTS = []
 
@@ -86,8 +86,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv("DJANGO_DB_NAME", default='catering'),
+        'USER': os.getenv("DJANGO_DB_USER", default='postgres'),
+        'PASSWORD': os.getenv("DJANGO_DB_PASSWORD", default='postgres'),
+        'HOST': os.getenv("DJANGO_DB_HOST", default='database'),
+        'PORT': os.getenv("DJANGO_DB_PORT", default='5432'),
         # "ATOMIC_REQUESTS": True,
     }
 }
@@ -157,12 +161,12 @@ SIMPLE_JWT = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://localhost:6379/0",
+        "LOCATION": os.getenv("DJANGO_CACHE_URL", default="redis://cache:6379/0"),
     }
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "localhost"
-EMAIL_PORT = 1025
+EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", default="mailing")
+EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", default=1025))
 # EMAIL_HOST_USER = "mailpit"
 # EMAIL_HOST_PASSWORD = "mailpit"

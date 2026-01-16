@@ -69,7 +69,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
     @action(methods=["POST"], detail=False, name="activate")
     def activate(self, request: Request) -> Response:
         serializer = UserActivationSerializer(data=request.data)
-        serializer.is_valid()
+        serializer.is_valid(raise_exception=True)
 
         activation_service = ActivationService()
         try:
