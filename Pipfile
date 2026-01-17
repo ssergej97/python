@@ -20,6 +20,7 @@ fastapi="~=0.128.0"
 django-stubs={ version="~=5.2.8", extras=["compatible-mypy"] }
 djangorestframework-stubs={ version="~=3.16.7", extras=["compatible-mypy"] }
 uvicorn="~=0.40.0"
+pydantic = "~=2.12.5"
 
 [requires]
 python_version="3.13"
