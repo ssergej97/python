@@ -31,10 +31,14 @@ async def update_order_status(order_id: str):
         STORAGE[order_id] = status
 
         async with httpx.AsyncClient() as client:
-            await client.post(
-                CATERING_API_WEBHOOK_URL, data={"id": order_id, "status": status}
-            )
-
+            try:
+                await client.post(
+                    CATERING_API_WEBHOOK_URL, data={"id": order_id, "status": status}
+                )
+            except httpx.ConnectError as error:
+                print("API connection failed")
+            else:
+                print(f"KFC: {CATERING_API_WEBHOOK_URL} notified about status")
 
 
 @app.post("/api/orders")
