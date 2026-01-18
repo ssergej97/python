@@ -51,6 +51,9 @@ class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         fields = "__all__"
+
+class KFCOrderSerializer(serializers.Serializer):
+    pass
         
 
 class IsAdmin(permissions.BasePermission):
@@ -59,6 +62,7 @@ class IsAdmin(permissions.BasePermission):
             return True
         else:
             return False
+
 
 class FoodAPIViewSet(viewsets.GenericViewSet):
     def get_permissions(self):
@@ -125,6 +129,11 @@ class FoodAPIViewSet(viewsets.GenericViewSet):
         serializer = OrderSerializer(orders, many=True)
 
         return Response(serializer.data)
+
+    @action(methods=["post"], detail=False, url_path="webhooks/kfc/")
+    def kfc_webhook(self, request: Request):
+        data = request.data
+        return
 
 router = routers.DefaultRouter()
 router.register(
