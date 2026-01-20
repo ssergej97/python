@@ -27,7 +27,28 @@ services:
       - "1025:1025"
       - "8025:8025"
   uklon_mock:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: uklon
+    container_name: catering-uklon-mock
+    ports:
+      - "8003:8000"
   silpo_mock:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: silpo
+    container_name: catering-silpo-mock
+    ports:
+      - "8001:8000"
   kfc_mock:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: kfc
+    container_name: catering-kfc-mock
+    ports:
+      - "8002:8000"
 volumes:
   pgdata:

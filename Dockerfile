@@ -27,3 +27,27 @@ RUN pipenv install --deploy --system
 EXPOSE 8000/tcp
 ENTRYPOINT ["python"]
 CMD ["-m", "gunicorn", "config.wsgi:application"]
+
+from base as silpo
+
+RUN pipenv install sync --dev --system
+
+EXPOSE 8000/tcp
+ENTRYPOINT ["python"]
+CMD ["-m", "uvicorn", "test.providers.silpo:app", "--host", "0.0.0.0"]
+
+from base as kfc
+
+RUN pipenv install sync --dev --system
+
+EXPOSE 8000/tcp
+ENTRYPOINT ["python"]
+CMD ["-m", "uvicorn", "test.providers.kfc:app", "--host", "0.0.0.0"]
+
+from base as uklon
+
+RUN pipenv install sync --dev --system
+
+EXPOSE 8000/tcp
+ENTRYPOINT ["python"]
+CMD ["-m", "uvicorn", "test.providers.uklon:app", "--host", "0.0.0.0"]

@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from django.db import transaction
+from services import schedule_order
 
 from .models import Restaurant, Dish, Order, OrderItem, OrderStatus
 from users.models import User, Role
@@ -111,7 +112,7 @@ class FoodAPIViewSet(viewsets.GenericViewSet):
 
         print(f"New food order is created {order.pk}. ETA: {order.eta}")
 
-        # TODO: Run schedular
+        schedule_order(order)
 
         return Response(OrderSerializer(order).data, status=201)
 
