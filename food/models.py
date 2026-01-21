@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import QuerySet
+
 from .enums import OrderStatus
 from django.conf import settings
 
@@ -47,6 +49,18 @@ class Order(models.Model):
 
     def __str__(self):
         return f"[{self.pk}] {self.status} for {self.user.email}"
+
+    def items_by_restaurant(self) -> dict["Restaurant", QuerySet["OrderItem"]]:
+        results = {}
+
+        qs = self.items.select_related("dish__restaurant")
+
+        restaurants = {item.dish.restaurant for item in qs}
+
+        for restaurant in restaurants:
+            results[restaurant] = qs.filter(dish__restaurant=restaurant)
+
+        return results
 
 
 class OrderItem(models.Model):
