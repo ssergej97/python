@@ -1,8 +1,13 @@
 from dataclasses import dataclass, field, asdict
+from time import sleep
+
+from django.db.models import QuerySet
 
 from shared.cache import CacheService
 from .enums import OrderStatus
-from .models import Order
+from .mapper import RESTAURANT_EXTERNAL_TO_INTERNAL
+from .models import Order, Restaurant, OrderItem
+from .providers import silpo
 
 
 @dataclass
@@ -10,8 +15,84 @@ class TrackingOrder:
     restaurants: dict = field(default_factory=dict)
     delivery: dict = field(default_factory=dict)
 
-def order_in_silpo(order_id: int, items):
-    pass
+def all_orders_cooked(order_id):
+    cache = CacheService()
+    tracking_order = TrackingOrder(
+        **cache.get(namespace="orders", key=str(order_id))
+    )
+    print(f"Checking if all orders are cooked: {tracking_order.restaurants}")
+
+    results = all(
+        payload["status"] == OrderStatus.COOKED
+        for _, payload in tracking_order.restaurants.items()
+    )
+
+    return results
+
+def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
+    client = silpo.Client()
+    cache = CacheService()
+    restaurant = Restaurant.objects.get(name="Silpo")
+
+    def get_internal_status(status: silpo.OrderStatus) -> OrderStatus:
+        return RESTAURANT_EXTERNAL_TO_INTERNAL["silpo"][status]
+
+    cooked = False
+    while not cooked:
+        sleep(1)
+
+        tracking_order = TrackingOrder(
+            **cache.get(namespace="orders", key=str(order_id))
+        )
+
+        silpo_order = tracking_order.restaurants.get(str(restaurant.pk))
+
+        if not silpo_order:
+            raise ValueError(f"No Silpo in orders processing")
+
+        print(f"Current Silpo order status: {silpo['status']}")
+
+        if not silpo_order["external_id"]:
+            response: silpo.OrderResponse = client.create_order(
+                silpo.OrderRequestBody(
+                    order=[
+                        silpo.OrderItem(dish=item.dish.name, quantity=item.quantity)
+                        for item in items
+                    ]
+                )
+            )
+            internal_status : OrderStatus = get_internal_status(response.status)
+
+            tracking_order.restaurants[str(restaurant.pk)] = {
+                "external_id": response.id,
+                "status": internal_status,
+            }
+
+            cache.set(namespace="orders", key=str(order_id), value=asdict(tracking_order))
+        else:
+            response = client.get_order(str(order_id))
+            internal_status = get_internal_status(response.status)
+            print(f"Tracking for Silpo Order with HTTP GET /orders")
+
+            if silpo_order["status"] != internal_status:
+                tracking_order.restaurants[str(restaurant.pk)]["status"] = internal_status
+                print(f"Silpo order status changed to {internal_status}")
+                cache.set(
+                    namespace="orders",
+                    key=str(order_id),
+                    value=asdict(tracking_order)
+                )
+            if internal_status == OrderStatus.COOKED:
+                print("Order is cooked")
+                cooked = True
+
+                if all_orders_cooked(order_id)
+                    cache.set(
+                        namespace="orders",
+                        key=str(order_id),
+                        value=asdict(tracking_order)
+                    )
+
 
 def order_in_kfc(order_id: int, items):
     pass
@@ -43,5 +124,6 @@ def schedule_order(order: Order):
                 order_in_silpo(order.pk, items)
             case "kfc":
                 order_in_kfc(order.pk, items)
-
+            case _:
+                raise ValueError(f"Restaurant {restaurant.name} is not available for processing")
     return
