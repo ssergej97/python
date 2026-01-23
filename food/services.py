@@ -2,12 +2,13 @@ from dataclasses import dataclass, field, asdict
 from time import sleep
 
 from django.db.models import QuerySet
+from mypy.types import names
 
 from shared.cache import CacheService
 from .enums import OrderStatus
 from .mapper import RESTAURANT_EXTERNAL_TO_INTERNAL
 from .models import Order, Restaurant, OrderItem
-from .providers import silpo
+from .providers import silpo, kfc
 
 
 @dataclass
@@ -70,7 +71,7 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
 
             cache.set(namespace="orders", key=str(order_id), value=asdict(tracking_order))
         else:
-            response = client.get_order(str(order_id))
+            response = client.get_order(str(silpo_order["external_id"]))
             internal_status = get_internal_status(response.status)
             print(f"Tracking for Silpo Order with HTTP GET /orders")
 
@@ -95,7 +96,22 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
 
 
 def order_in_kfc(order_id: int, items):
-    pass
+    client = kfc.Client()
+    cache = CacheService()
+    restaurant = Restaurant.objects.get(name="KFC")
+
+    tracking_order = TrackingOrder(
+        **cache.get(namespace="orders", key=str(order_id))
+    )
+
+    tracking_order.restaurants[str(restaurant.pk)] = {
+        "external_id": "MOCK",
+        "status": OrderStatus.COOKED,
+    }
+
+    print(f"Created MOCKED KFC Order. External ID: 'MOCK', Status: COOKED")
+
+    cache.set(namespace="orders", key=str(order_id), value=asdict(tracking_order))
 
 def build_request_body():
     pass

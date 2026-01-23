@@ -18,7 +18,7 @@ COPY . .
 
 from base as dev
 
-RUN pipenv install sync --dev --system
+RUN pipenv sync --dev --system
 
 from base as prod
 
@@ -46,7 +46,7 @@ CMD ["-m", "uvicorn", "test.providers.kfc:app", "--host", "0.0.0.0"]
 
 from base as uklon
 
-RUN pipenv install sync --dev --system
+RUN pipenv sync --dev --system
 
 EXPOSE 8000/tcp
 ENTRYPOINT ["python"]
