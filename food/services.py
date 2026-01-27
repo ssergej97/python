@@ -4,6 +4,8 @@ from time import sleep
 from django.db.models import QuerySet
 from mypy.types import names
 
+from config import celery_app
+
 from shared.cache import CacheService
 from .enums import OrderStatus
 from .mapper import RESTAURANT_EXTERNAL_TO_INTERNAL
@@ -30,6 +32,7 @@ def all_orders_cooked(order_id):
 
     return results
 
+@celery_app.task(queue="default")
 def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
     client = silpo.Client()
     cache = CacheService()
@@ -71,9 +74,10 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
 
             cache.set(namespace="orders", key=str(order_id), value=asdict(tracking_order))
         else:
+
             response = client.get_order(str(silpo_order["external_id"]))
             internal_status = get_internal_status(response.status)
-            print(f"Tracking for Silpo Order with HTTP GET /orders")
+            print(f"Tracking for Silpo Order with HTTP GET api/orders. Status: {internal_status}")
 
             if silpo_order["status"] != internal_status:
                 tracking_order.restaurants[str(restaurant.pk)]["status"] = internal_status
@@ -83,6 +87,9 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
                     key=str(order_id),
                     value=asdict(tracking_order)
                 )
+                if internal_status == OrderStatus.COOKING:
+                    Order.objects.filter(id=order_id).update(status=OrderStatus.COOKING)
+
             if internal_status == OrderStatus.COOKED:
                 print("Order is cooked")
                 cooked = True
@@ -94,7 +101,7 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
                         value=asdict(tracking_order)
                     )
 
-
+@celery_app.task(queue="high_priority")
 def order_in_kfc(order_id: int, items):
     client = kfc.Client()
     cache = CacheService()
@@ -137,9 +144,9 @@ def schedule_order(order: Order):
     for restaurant, items in items_by_restaurant.items():
         match restaurant.name.lower():
             case "silpo":
-                order_in_silpo(order.pk, items)
+                order_in_silpo.delay(order.pk, items)
             case "kfc":
-                order_in_kfc(order.pk, items)
+                order_in_kfc.delay(order.pk, items)
             case _:
                 raise ValueError(f"Restaurant {restaurant.name} is not available for processing")
     return

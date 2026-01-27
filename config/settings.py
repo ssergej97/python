@@ -170,3 +170,19 @@ EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", default="mailing")
 EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", default=1025))
 # EMAIL_HOST_USER = "mailpit"
 # EMAIL_HOST_PASSWORD = "mailpit"
+
+CELERY_BROKER_URL = os.getenv("DJANGO_BROKER_URL", default="redis://broker:6379/0")
+CELERY_ACCEPT_CONTENT = [
+    "pickle",
+    "application/json",
+]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_EVENT_SERIALIZER = "pickle"
+CELERY_TASK_QUEUES = {
+    "default": {"exchange": "default", "routing_key": "default"},
+    "high_priority": {"exchange": "high_priority", "routing_key": "high_priority"},
+}
+
+
+
+
