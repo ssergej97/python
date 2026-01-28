@@ -107,18 +107,37 @@ def order_in_kfc(order_id: int, items):
     cache = CacheService()
     restaurant = Restaurant.objects.get(name="KFC")
 
+    def get_internal_status(status: kfc.OrderStatus) -> OrderStatus:
+        return RESTAURANT_EXTERNAL_TO_INTERNAL["kfc"][status]
+
     tracking_order = TrackingOrder(
         **cache.get(namespace="orders", key=str(order_id))
     )
 
+    response: kfc.OrderResponse = client.create_order(
+        kfc.OrderRequestBody(
+            order=[
+                kfc.OrderItem(dish=item.dish.name, quantity=item.quantity)
+                for item in items
+            ]
+        )
+    )
+
+    internal_status = get_internal_status(response.status)
+
     tracking_order.restaurants[str(restaurant.pk)] = {
-        "external_id": "MOCK",
-        "status": OrderStatus.COOKED,
+        "external_id": response.id,
+        "status": internal_status,
     }
 
-    print(f"Created MOCKED KFC Order. External ID: 'MOCK', Status: COOKED")
+    print(f"Created MOCKED KFC Order. External ID: {response.id}, Status: {internal_status}")
 
     cache.set(namespace="orders", key=str(order_id), value=asdict(tracking_order))
+
+    cache.set(namespace="kfc_orders",
+              key=response.id,
+              value={"internal_order_id": order_id}
+              )
 
 def build_request_body():
     pass
@@ -140,6 +159,8 @@ def schedule_order(order: Order):
         key=str(order.pk),
         value=asdict(tracking_order)
     )
+
+
 
     for restaurant, items in items_by_restaurant.items():
         match restaurant.name.lower():

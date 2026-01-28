@@ -21,7 +21,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from users.views import router as users_router
-from food.views import router as food_router, import_dishes
+from food.views import router as food_router, import_dishes, kfc_webhook
 
 urlpatterns = [
     path('admin/food/dish/import-dishes/', import_dishes, name="import_dishes"),
@@ -29,4 +29,5 @@ urlpatterns = [
     path('auth/token/', TokenObtainPairView.as_view(), name='obtain_token'),
     path('users/', include(users_router.urls)),
     path('food/', include(food_router.urls)),
+    path('webhooks/kfc/', kfc_webhook, name="kfc_webhook"),
 ]

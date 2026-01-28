@@ -1,6 +1,12 @@
+import json
+from dataclasses import asdict
 from datetime import date
+from pyexpat.errors import messages
 
 from django.contrib.admindocs.utils import ROLES
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from mypy.types import names
 from rest_framework import viewsets, serializers, routers, permissions
 from rest_framework.decorators import action, permission_classes
 from rest_framework.exceptions import ValidationError
@@ -8,9 +14,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from django.db import transaction
 from services import schedule_order
+from shared.cache import CacheService
 
 from .models import Restaurant, Dish, Order, OrderItem, OrderStatus
 from users.models import User, Role
+from .services import TrackingOrder, all_orders_cooked
 
 
 class DishSerializer(serializers.ModelSerializer):
@@ -135,6 +143,37 @@ class FoodAPIViewSet(viewsets.GenericViewSet):
     def kfc_webhook(self, request: Request):
         data = request.data
         return
+
+@csrf_exempt
+def kfc_webhook(request):
+
+    print("KFC webhook is handled")
+
+    data: dict = json.loads(request.POST)
+
+    cache = CacheService()
+    restaurant = Restaurant.objects.get(name="KFC")
+    kfc_cache_order = cache.get("kfc_orders", key=data["id"])
+
+    order: Order = Order.objects.get(id=kfc_cache_order["internal_order_id"])
+    tracking_order = TrackingOrder(
+        **cache.get(namespace="orders", key=str(order.pk))
+    )
+    tracking_order.restaurants[str(restaurant.pk)] = {
+        "external_id": data["id"],
+        "status": OrderStatus.COOKED,
+    }
+
+    cache.set(namespace="orders", key=str(order.pk), value=asdict(tracking_order))
+
+    if all_orders_cooked(order.pk):
+        order.status = OrderStatus.COOKED
+        order.save()
+        print(f"All orders are cooked")
+    else:
+        print(f"Not all orders are cooked")
+
+    return JsonResponse({"message": "ok"})
 
 router = routers.DefaultRouter()
 router.register(
